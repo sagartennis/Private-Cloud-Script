@@ -1,0 +1,21 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "PrivateCloud"
+    },
+    
+    {
+        "ParameterKey": "vpcCird",
+        "ParameterValue": "10.0.0.0/16"
+    },
+
+    {
+        "ParameterKey": "PrivateSunbnet1CIRD",
+        "ParameterValue": "10.0.2.0/24"
+    }
+
+    {
+        "ParameterKey":"PrivateSunbnet2CIRD",
+        "ParameterValue":"10.0.3.0/24"
+    }
+]

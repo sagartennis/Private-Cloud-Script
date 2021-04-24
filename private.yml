@@ -1,0 +1,135 @@
+Parameters:
+  EnvironmentName:
+    Type: String
+  
+  vpcCird:
+    Type: String
+    Default: 10.0.0.0/16
+  
+  PrivateSunbnet1CIRD:
+    Type: String
+    Default: 10.0.2.0/24
+
+  PrivateSunbnet2CIRD:
+    Type: String
+    Default: 10.0.3.0/24
+  
+  OnPrem:
+    Type: String
+    Default: 1.2.3.4
+
+Resources:
+
+VPC:
+  Type: AWS:EC2::VPC
+  Properties:
+    CidrBlock: !Ref vpcCird
+    EnableDnsHostnames: true
+
+PrivateSubnet1:
+  Type: AWS:EC2::Subnet
+  Properties:
+      VpcId: !Ref VPC        
+      CidrBlock: !Ref PrivateSubnet1CIRD
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: name
+        Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+PrivateSubnet2:
+  Type: AWS:EC2::Subnet
+  Properties:
+      VpcId: !Ref VPC        
+      CidrBlock: !Ref PrivateSubnet2CIRD
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: name
+        Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+PrivateRouteTable1:
+  Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+        
+      Tags:
+      - Key: name
+        Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+PrivateRoute1:
+  Type: AWS::EC2::Route
+  DependsOn: GatewayToInternetAndCarrierNetwork
+  Properties:
+       RouteTableId: !Ref PrivateRouteTable1
+         
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref myVPNGateway
+
+mySubnet1RouteTableAssociation:
+  Type: AWS::EC2::SubnetRouteTableAssociation
+  Properties:
+    SubnetId: !Ref PrivateSubnet1
+      
+    RouteTableId:
+      Ref: !Ref PrivateRouteTable1 
+
+PrivateRouteTable2:
+  Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+        
+      Tags:
+      - Key: name
+        Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+PrivateRoute2:
+  Type: AWS::EC2::Route
+  DependsOn: GatewayToInternetAndCarrierNetwork
+  Properties:
+       RouteTableId: !Ref PrivateRouteTable2
+         
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref myVPNGateway
+
+mySubnet2RouteTableAssociation:
+  Type: AWS::EC2::SubnetRouteTableAssociation
+  Properties:
+    SubnetId: !Ref PrivateSubnet2
+      
+    RouteTableId:
+      Ref: !Ref PrivateRouteTable2   
+
+myVPNGateway: 
+  Type: AWS::EC2::VPNGateway
+  Properties: 
+    Type: ipsec.1
+    Tags: 
+    - Key: Use
+      Value: !Sub "${EnvironmentName} Amazon-side Gateway"
+
+AttachVpnGateway:
+  Type: AWS::EC2::VPCGatewayAttachment
+  Properties:
+    VpcId: !Ref VPC
+      
+    VpnGatewayId: !Ref myVPNGateway
+
+myVPNConnection: 
+  Type: AWS::EC2::VPNConnection
+  Properties: 
+    Type: ipsec.1
+    StaticRoutesOnly: true
+    CustomerGatewayId: 
+      
+    VpnGatewayId: 
+      !Ref myVPNGateway
+
+myCustomerGateway: 
+    Type: AWS::EC2::CustomerGateway
+    Properties: 
+        Type: ipsec.1
+        BgpAsn: 65534
+        IpAddress: !Ref OnPrem
+      
+
